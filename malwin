@@ -1,0 +1,14 @@
+crie um software legitimo para windows 10 ou server 2019  ou qualquer versão que não dependa de privilegio de administrador para executar o software onde o software vai rodar com o nome de icsid.exe e vai ter a seguintes funções:
+
+1 - Sua comunicação base sera feita atraves de um serviço ssh independente do sistema operacional
+2 - As sessões remotas terão uma interface web para que o usuario possa se conectar ao software e interagir com a maquina o qual está em execução.
+3 - O software deve ser multiplataforma e deve rodar em qualquer sistema operacional mas sua base de linguagem deve ser golang (baseado no projeto https://github.com/NHAS/reverse_ssh)
+4 - O software deve ser legitimo e indetectavel pelo windows defender e não deve ser bloqueado pelo firewall do windows nem qualquer antivirus  
+5 - UM vez que for executado na maquina, encontrará uma forma de manter persistente na maquina de forma que não seja facilmente detectado e removido pelo usuario final ou que seja detectada como malware pois ela não é. 
+6 - o usuario final não deve ter como detectar que a maquina esta sendo controlada remotamente pelo software.
+7 - o software deve ser capaz de se conectar a maquina onde ele esta sendo executado atraves de uma rede local ou de internet. 
+8 - a interface web deve ser capaz de ser acessada atraves de qualquer navegador de internet através de um painel de login.
+9 - o software deve ser capaz de se conectar a maquina onde ele esta sendo executado atraves de uma rede local ou de internet. 
+10 - a interface web precisa ser capaz de gerenciar tudo na maquina como se fosse o próprio windows e receber informações do sistema operacional e do hardware da maquina em tempo real.
+11 - pela interface web deve ser possivel gerar novos payloads para outras maquinas e receber as informações do payloads gerados e executar comandos no payloads de multiplas arquiteturas. 
+12 - o software deve ser desenvolvido em golang e deve ser multiplataforma seguindo uma esteira de desenvolvimento de software que não possa ser realizadas mudanças bruscas no projeto e deve seguir exatamente o que foi planejado aqui.

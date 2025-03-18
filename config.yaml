@@ -1,0 +1,20 @@
+server:
+  ssh:
+    port: 2222
+    host_key: "host_key"
+    username: "admin"
+    password: "changeme"  # Deve ser alterado em produção
+  web:
+    port: 8443
+    cert_file: "cert.pem"
+    key_file: "key.pem"
+
+client:
+  server_address: "localhost:2222"
+  username: "admin"
+  password: "changeme"  # Deve ser alterado em produção
+
+persistence:
+  enabled: true
+  method: "registry"  # Opções: registry, service, startup
+  path: "Software\\ICSID" 

@@ -1,0 +1,84 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        
+    - name: Install dependencies
+      run: go mod download
+      
+    - name: Run tests
+      run: go test -v ./...
+      
+    - name: Run security checks
+      run: |
+        go install github.com/securego/gosec/v2/cmd/gosec@latest
+        gosec ./...
+        
+    - name: Run linter
+      run: |
+        go install golang.org/x/lint/golint@latest
+        golint ./...
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        
+    - name: Build
+      run: |
+        GOOS=windows GOARCH=amd64 go build -o icsid.exe ./cmd/icsid
+        GOOS=linux GOARCH=amd64 go build -o icsid_linux ./cmd/icsid
+        GOOS=darwin GOARCH=amd64 go build -o icsid_darwin ./cmd/icsid
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: binaries
+        path: |
+          icsid.exe
+          icsid_linux
+          icsid_darwin
+
+  backup:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: binaries
+        
+    - name: Create backup
+      run: |
+        mkdir -p backup
+        cp *.exe backup/
+        cp icsid_* backup/
+        tar -czf backup.tar.gz backup/
+        
+    - name: Upload backup
+      uses: actions/upload-artifact@v3
+      with:
+        name: backup
+        path: backup.tar.gz 
