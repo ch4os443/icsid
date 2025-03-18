@@ -1,66 +1,58 @@
-# ICSID - Sistema de Gerenciamento Remoto
+# ICSID
 
 Sistema legítimo de gerenciamento remoto multiplataforma desenvolvido em Go.
 
-## Estrutura do Projeto
+## Características
 
-```
-.
-├── cmd/                    # Ponto de entrada da aplicação
-├── internal/              # Código interno do projeto
-│   ├── config/           # Configurações
-│   ├── server/           # Servidor SSH e Web
-│   ├── client/           # Cliente
-│   └── models/           # Modelos de dados
-├── pkg/                   # Pacotes reutilizáveis
-├── web/                   # Interface web
-├── scripts/              # Scripts de automação
-├── tests/                # Testes
-└── docs/                 # Documentação
-```
+- Comunicação SSH segura
+- Interface web responsiva
+- Multiplataforma (Windows, Linux, macOS)
+- Execução sem privilégios administrativos
+- Gerenciamento de sessões
+- Monitoramento em tempo real
 
 ## Requisitos
 
 - Go 1.21 ou superior
-- Node.js 18+ (para interface web)
-- Docker (opcional, para desenvolvimento)
+- OpenSSL para certificados
+- Navegador web moderno
 
-## Desenvolvimento
+## Instalação
 
-1. Clone o repositório
-2. Instale as dependências:
-   ```bash
-   go mod download
-   ```
-3. Execute os testes:
-   ```bash
-   go test ./...
-   ```
-4. Compile o projeto:
-   ```bash
-   go build -o icsid.exe ./cmd/icsid
-   ```
+```bash
+# Clone o repositório
+git clone git@github.com:ch4os443/icsid.git
 
-## CI/CD
+# Entre no diretório
+cd icsid
 
-O projeto utiliza GitHub Actions para:
-- Testes automatizados
-- Build e deploy
-- Verificação de segurança
-- Backup automático
+# Instale as dependências
+./scripts/install.sh
 
-## Backup
+# Execute os testes
+./scripts/test.sh
 
-O sistema de backup automático é executado a cada commit, armazenando:
-- Código fonte
-- Configurações
-- Documentação
-- Artefatos de build
+# Compile o projeto
+./scripts/build.sh
+```
+
+## Uso
+
+```bash
+# Inicie o servidor em modo de desenvolvimento
+./scripts/dev.sh
+
+# Acesse a interface web
+https://localhost:8443
+```
 
 ## Segurança
 
-Este é um software legítimo que segue as melhores práticas de segurança:
-- Comunicação criptografada via SSH
+- Comunicação criptografada
 - Autenticação segura
-- Sem privilégios de administrador necessários
-- Conformidade com políticas de segurança do Windows 
+- Sem privilégios elevados
+- Logs detalhados
+
+## Licença
+
+MIT License - veja o arquivo [LICENSE](LICENSE) para mais detalhes. 
