@@ -39,4 +39,9 @@ Thumbs.db
 
 # Arquivos temporários
 *.tmp
-*.temp 
+*.temp
+
+# Diretórios de build
+/build/
+/dist/
+/tmp/ 

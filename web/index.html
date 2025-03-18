@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICSID - Painel de Controle</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        .session-card {
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .session-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .command-output {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">ICSID</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#sessions">Sessões</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#commands">Comandos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#settings">Configurações</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Sessões Ativas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="sessions-list">
+                            <!-- Sessões serão inseridas aqui dinamicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Executar Comando</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="command-form">
+                            <div class="mb-3">
+                                <label for="session-select" class="form-label">Sessão</label>
+                                <select class="form-select" id="session-select" required>
+                                    <option value="">Selecione uma sessão</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="command-input" class="form-label">Comando</label>
+                                <input type="text" class="form-control" id="command-input" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Executar</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Informações do Sistema</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="system-info">
+                            <!-- Informações do sistema serão inseridas aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // Funções para atualizar a interface
+        function updateSessions() {
+            axios.get('/api/sessions')
+                .then(response => {
+                    const sessionsList = document.getElementById('sessions-list');
+                    const sessionSelect = document.getElementById('session-select');
+                    
+                    // Limpa as listas
+                    sessionsList.innerHTML = '';
+                    sessionSelect.innerHTML = '<option value="">Selecione uma sessão</option>';
+                    
+                    // Adiciona as sessões
+                    response.data.forEach(session => {
+                        // Adiciona à lista de sessões
+                        const sessionCard = createSessionCard(session);
+                        sessionsList.appendChild(sessionCard);
+                        
+                        // Adiciona ao select
+                        const option = document.createElement('option');
+                        option.value = session.id;
+                        option.textContent = `${session.hostname} (${session.user})`;
+                        sessionSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Erro ao atualizar sessões:', error));
+        }
+
+        function createSessionCard(session) {
+            const card = document.createElement('div');
+            card.className = 'card session-card';
+            card.innerHTML = `
+                <div class="card-body">
+                    <h5 class="card-title">${session.hostname}</h5>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            Usuário: ${session.user}<br>
+                            OS: ${session.os}<br>
+                            Arquitetura: ${session.arch}
+                        </small>
+                    </p>
+                    <div class="command-output" id="output-${session.id}">
+                        <!-- Saída dos comandos será inserida aqui -->
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function updateSystemInfo(sessionId) {
+            axios.get(`/api/system-info/${sessionId}`)
+                .then(response => {
+                    const systemInfo = document.getElementById('system-info');
+                    systemInfo.innerHTML = `
+                        <dl class="row">
+                            <dt class="col-sm-4">ID</dt>
+                            <dd class="col-sm-8">${response.data.id}</dd>
+                            
+                            <dt class="col-sm-4">Usuário</dt>
+                            <dd class="col-sm-8">${response.data.user}</dd>
+                            
+                            <dt class="col-sm-4">Hostname</dt>
+                            <dd class="col-sm-8">${response.data.hostname}</dd>
+                            
+                            <dt class="col-sm-4">Sistema</dt>
+                            <dd class="col-sm-8">${response.data.os}</dd>
+                            
+                            <dt class="col-sm-4">Arquitetura</dt>
+                            <dd class="col-sm-8">${response.data.arch}</dd>
+                            
+                            <dt class="col-sm-4">Status</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge ${response.data.connected ? 'bg-success' : 'bg-danger'}">
+                                    ${response.data.connected ? 'Conectado' : 'Desconectado'}
+                                </span>
+                            </dd>
+                        </dl>
+                    `;
+                })
+                .catch(error => console.error('Erro ao atualizar informações do sistema:', error));
+        }
+
+        // Event Listeners
+        document.getElementById('command-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const sessionId = document.getElementById('session-select').value;
+            const command = document.getElementById('command-input').value;
+            
+            if (!sessionId || !command) return;
+            
+            axios.post('/api/execute', {
+                session_id: sessionId,
+                command: command
+            })
+            .then(response => {
+                const output = document.getElementById(`output-${sessionId}`);
+                output.innerHTML += `
+                    <div class="mb-2">
+                        <strong>$ ${command}</strong><br>
+                        <pre>${response.data.output}</pre>
+                    </div>
+                `;
+                output.scrollTop = output.scrollHeight;
+                
+                document.getElementById('command-input').value = '';
+            })
+            .catch(error => console.error('Erro ao executar comando:', error));
+        });
+
+        document.getElementById('session-select').addEventListener('change', function(e) {
+            const sessionId = e.target.value;
+            if (sessionId) {
+                updateSystemInfo(sessionId);
+            }
+        });
+
+        // Atualiza a interface periodicamente
+        setInterval(updateSessions, 5000);
+        updateSessions();
+    </script>
+</body>
+</html> 
