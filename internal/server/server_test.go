@@ -37,75 +37,265 @@ func TestServerCreation(t *testing.T) {
 	}
 }
 
-func TestSessionManagement(t *testing.T) {
-	sm := NewSessionManager()
-	if sm == nil {
+func TestServerInitialization(t *testing.T) {
+	cfg := &config.Config{
+		Server: struct {
+			SSH struct {
+				Port     int    `yaml:"port"`
+				HostKey  string `yaml:"host_key"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+			} `yaml:"ssh"`
+			Web struct {
+				Port     int    `yaml:"port"`
+				CertFile string `yaml:"cert_file"`
+				KeyFile  string `yaml:"key_file"`
+			} `yaml:"web"`
+		}{
+			SSH: struct {
+				Port     int    `yaml:"port"`
+				HostKey  string `yaml:"host_key"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+			}{
+				Port:     2222,
+				HostKey:  "testdata/host_key",
+				Username: "test",
+				Password: "test123",
+			},
+			Web: struct {
+				Port     int    `yaml:"port"`
+				CertFile string `yaml:"cert_file"`
+				KeyFile  string `yaml:"key_file"`
+			}{
+				Port:     8080,
+				CertFile: "testdata/cert.pem",
+				KeyFile:  "testdata/key.pem",
+			},
+		},
+	}
+
+	server, err := New(cfg)
+	if err != nil {
+		t.Fatalf("Erro ao criar servidor: %v", err)
+	}
+	if server == nil {
+		t.Fatal("Servidor é nil")
+	}
+	if server.ssh == nil {
+		t.Fatal("Servidor SSH é nil")
+	}
+	if server.sessions == nil {
 		t.Fatal("Gerenciador de sessões é nil")
 	}
+	if server.logger == nil {
+		t.Fatal("Logger é nil")
+	}
+	if server.rateLimiter == nil {
+		t.Fatal("Rate limiter é nil")
+	}
+}
 
-	// Testa adição de sessão
-	session := &mockSession{
-		id:   "test1",
-		user: "test",
-		addr: "localhost:2222",
+func TestSessionManagement(t *testing.T) {
+	cfg := &config.Config{
+		Server: struct {
+			SSH struct {
+				Port     int    `yaml:"port"`
+				HostKey  string `yaml:"host_key"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+			} `yaml:"ssh"`
+			Web struct {
+				Port     int    `yaml:"port"`
+				CertFile string `yaml:"cert_file"`
+				KeyFile  string `yaml:"key_file"`
+			} `yaml:"web"`
+		}{
+			SSH: struct {
+				Port     int    `yaml:"port"`
+				HostKey  string `yaml:"host_key"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+			}{
+				Port:     2222,
+				HostKey:  "testdata/host_key",
+				Username: "test",
+				Password: "test123",
+			},
+			Web: struct {
+				Port     int    `yaml:"port"`
+				CertFile string `yaml:"cert_file"`
+				KeyFile  string `yaml:"key_file"`
+			}{
+				Port:     8080,
+				CertFile: "testdata/cert.pem",
+				KeyFile:  "testdata/key.pem",
+			},
+		},
 	}
 
-	s := sm.AddSession(session)
-	if s == nil {
-		t.Fatal("Sessão não foi criada")
+	server, err := New(cfg)
+	if err != nil {
+		t.Fatalf("Erro ao criar servidor: %v", err)
 	}
 
-	if s.ID != session.id {
-		t.Errorf("ID da sessão incorreto: %s != %s", s.ID, session.id)
+	// Cria uma sessão mock
+	mockSession := &ExtendedSession{}
+	sessionInfo := server.sessions.AddSession(mockSession)
+	if sessionInfo.ID == "" {
+		t.Fatal("ID da sessão está vazio")
 	}
 
-	// Testa recuperação de sessão
-	s, ok := sm.GetSession(session.id)
+	// Verifica se a sessão foi adicionada
+	session, ok := server.sessions.GetSession(sessionInfo.ID)
 	if !ok {
 		t.Fatal("Sessão não encontrada")
 	}
-
-	if s.ID != session.id {
-		t.Errorf("ID da sessão incorreto: %s != %s", s.ID, session.id)
+	if session.ID != sessionInfo.ID {
+		t.Errorf("ID da sessão incorreto: %s != %s", session.ID, sessionInfo.ID)
 	}
 
-	// Testa remoção de sessão
-	sm.RemoveSession(session.id)
-	_, ok = sm.GetSession(session.id)
+	// Remove a sessão
+	server.sessions.RemoveSession(sessionInfo.ID)
+	session, ok = server.sessions.GetSession(sessionInfo.ID)
 	if ok {
 		t.Error("Sessão não foi removida")
 	}
 }
 
 func TestCommandExecution(t *testing.T) {
-	sm := NewSessionManager()
-	session := &mockSession{
-		id:   "test1",
-		user: "test",
-		addr: "localhost:2222",
+	cfg := &config.Config{
+		Server: struct {
+			SSH struct {
+				Port     int    `yaml:"port"`
+				HostKey  string `yaml:"host_key"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+			} `yaml:"ssh"`
+			Web struct {
+				Port     int    `yaml:"port"`
+				CertFile string `yaml:"cert_file"`
+				KeyFile  string `yaml:"key_file"`
+			} `yaml:"web"`
+		}{
+			SSH: struct {
+				Port     int    `yaml:"port"`
+				HostKey  string `yaml:"host_key"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+			}{
+				Port:     2222,
+				HostKey:  "testdata/host_key",
+				Username: "test",
+				Password: "test123",
+			},
+			Web: struct {
+				Port     int    `yaml:"port"`
+				CertFile string `yaml:"cert_file"`
+				KeyFile  string `yaml:"key_file"`
+			}{
+				Port:     8080,
+				CertFile: "testdata/cert.pem",
+				KeyFile:  "testdata/key.pem",
+			},
+		},
 	}
 
-	s := sm.AddSession(session)
-	if s == nil {
-		t.Fatal("Sessão não foi criada")
+	server, err := New(cfg)
+	if err != nil {
+		t.Fatalf("Erro ao criar servidor: %v", err)
 	}
+
+	// Cria uma sessão mock
+	mockSession := &ExtendedSession{}
+	sessionInfo := server.sessions.AddSession(mockSession)
+	defer server.sessions.RemoveSession(sessionInfo.ID)
 
 	// Testa execução de comando
-	result, err := sm.ExecuteCommand(session.id, "echo test")
+	result, err := server.sessions.ExecuteCommand(sessionInfo.ID, "echo 'test'")
 	if err != nil {
 		t.Fatalf("Erro ao executar comando: %v", err)
 	}
-
 	if result == nil {
 		t.Fatal("Resultado é nil")
 	}
-
-	if result.Command != "echo test" {
-		t.Errorf("Comando incorreto: %s != %s", result.Command, "echo test")
-	}
-
 	if result.Output != "test\n" {
 		t.Errorf("Saída incorreta: %s != %s", result.Output, "test\n")
+	}
+	if result.Status != 0 {
+		t.Errorf("Status incorreto: %d != 0", result.Status)
+	}
+
+	// Testa comando inválido
+	result, err = server.sessions.ExecuteCommand(sessionInfo.ID, "invalid_command")
+	if err == nil {
+		t.Error("Erro esperado ao executar comando inválido")
+	}
+}
+
+func TestSystemInfo(t *testing.T) {
+	cfg := &config.Config{
+		Server: struct {
+			SSH struct {
+				Port     int    `yaml:"port"`
+				HostKey  string `yaml:"host_key"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+			} `yaml:"ssh"`
+			Web struct {
+				Port     int    `yaml:"port"`
+				CertFile string `yaml:"cert_file"`
+				KeyFile  string `yaml:"key_file"`
+			} `yaml:"web"`
+		}{
+			SSH: struct {
+				Port     int    `yaml:"port"`
+				HostKey  string `yaml:"host_key"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+			}{
+				Port:     2222,
+				HostKey:  "testdata/host_key",
+				Username: "test",
+				Password: "test123",
+			},
+			Web: struct {
+				Port     int    `yaml:"port"`
+				CertFile string `yaml:"cert_file"`
+				KeyFile  string `yaml:"key_file"`
+			}{
+				Port:     8080,
+				CertFile: "testdata/cert.pem",
+				KeyFile:  "testdata/key.pem",
+			},
+		},
+	}
+
+	server, err := New(cfg)
+	if err != nil {
+		t.Fatalf("Erro ao criar servidor: %v", err)
+	}
+
+	// Cria uma sessão mock
+	mockSession := &ExtendedSession{}
+	sessionInfo := server.sessions.AddSession(mockSession)
+	defer server.sessions.RemoveSession(sessionInfo.ID)
+
+	// Obtém informações do sistema
+	info, err := server.sessions.GetSystemInfo(sessionInfo.ID)
+	if err != nil {
+		t.Fatalf("Erro ao obter informações do sistema: %v", err)
+	}
+	if info == nil {
+		t.Fatal("Informações do sistema são nil")
+	}
+
+	// Verifica campos obrigatórios
+	requiredFields := []string{"hostname", "os", "architecture"}
+	for _, field := range requiredFields {
+		if value, ok := info[field]; !ok || value == "" {
+			t.Errorf("Campo %s está vazio ou ausente", field)
+		}
 	}
 }
 

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICSID - Painel de Controle</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="app" class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">ICSID - Painel de Controle</h1>
+        </header>
+
+        <!-- Lista de Sessões -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Sessões Ativas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div v-for="session in sessions" :key="session.id" 
+                     class="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-medium">Sessão #{{ session.id }}</h3>
+                        <span class="text-sm text-gray-500">{{ formatTime(session.start) }}</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p>Usuário: {{ session.user }}</p>
+                        <p>Host: {{ session.hostname }}</p>
+                    </div>
+                    <div class="mt-4">
+                        <button @click="selectSession(session)" 
+                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Selecionar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Painel de Controle -->
+        <div v-if="selectedSession" class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold">Controle da Sessão #{{ selectedSession.id }}</h2>
+                <button @click="refreshSession" 
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Atualizar
+                </button>
+            </div>
+
+            <!-- Informações do Sistema -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-2">Informações do Sistema</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div v-for="(value, key) in systemInfo" :key="key" 
+                         class="bg-gray-50 p-3 rounded">
+                        <p class="font-medium">{{ key }}</p>
+                        <p class="text-sm text-gray-600">{{ value }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Execução de Comandos -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium mb-2">Executar Comando</h3>
+                <div class="flex gap-2">
+                    <input v-model="command" 
+                           @keyup.enter="executeCommand"
+                           type="text" 
+                           placeholder="Digite o comando..."
+                           class="flex-1 border rounded px-4 py-2">
+                    <button @click="executeCommand" 
+                            class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
+                        Executar
+                    </button>
+                </div>
+                <div v-if="commandOutput" class="mt-4">
+                    <pre class="bg-gray-100 p-4 rounded">{{ commandOutput }}</pre>
+                </div>
+            </div>
+
+            <!-- Estatísticas -->
+            <div>
+                <h3 class="text-lg font-medium mb-2">Estatísticas</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 p-3 rounded">
+                        <p class="font-medium">Tempo Ativo</p>
+                        <p class="text-sm text-gray-600">{{ formatDuration(sessionStats.duration) }}</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded">
+                        <p class="font-medium">Último Comando</p>
+                        <p class="text-sm text-gray-600">{{ formatTime(sessionStats.last_command) }}</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded">
+                        <p class="font-medium">Status</p>
+                        <p class="text-sm text-gray-600">Ativo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                sessions: [],
+                selectedSession: null,
+                systemInfo: {},
+                command: '',
+                commandOutput: '',
+                sessionStats: {}
+            },
+            methods: {
+                async loadSessions() {
+                    try {
+                        const response = await axios.get('/api/sessions');
+                        this.sessions = response.data;
+                    } catch (error) {
+                        console.error('Erro ao carregar sessões:', error);
+                    }
+                },
+                async selectSession(session) {
+                    this.selectedSession = session;
+                    await this.loadSystemInfo();
+                    await this.loadSessionStats();
+                },
+                async loadSystemInfo() {
+                    if (!this.selectedSession) return;
+                    try {
+                        const response = await axios.get(`/api/sessions/${this.selectedSession.id}/system`);
+                        this.systemInfo = response.data;
+                    } catch (error) {
+                        console.error('Erro ao carregar informações do sistema:', error);
+                    }
+                },
+                async loadSessionStats() {
+                    if (!this.selectedSession) return;
+                    try {
+                        const response = await axios.get(`/api/sessions/${this.selectedSession.id}/stats`);
+                        this.sessionStats = response.data;
+                    } catch (error) {
+                        console.error('Erro ao carregar estatísticas:', error);
+                    }
+                },
+                async executeCommand() {
+                    if (!this.selectedSession || !this.command) return;
+                    try {
+                        const response = await axios.post(`/api/sessions/${this.selectedSession.id}/execute`, {
+                            command: this.command
+                        });
+                        this.commandOutput = response.data.output;
+                        this.command = '';
+                    } catch (error) {
+                        console.error('Erro ao executar comando:', error);
+                    }
+                },
+                async refreshSession() {
+                    await this.loadSystemInfo();
+                    await this.loadSessionStats();
+                },
+                formatTime(timestamp) {
+                    return new Date(timestamp).toLocaleString();
+                },
+                formatDuration(duration) {
+                    const hours = Math.floor(duration / 3600);
+                    const minutes = Math.floor((duration % 3600) / 60);
+                    const seconds = duration % 60;
+                    return `${hours}h ${minutes}m ${seconds}s`;
+                }
+            },
+            mounted() {
+                this.loadSessions();
+                setInterval(this.loadSessions, 5000);
+            }
+        });
+    </script>
+</body>
+</html> 

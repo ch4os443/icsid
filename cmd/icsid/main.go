@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/icsid/icsid/internal/config"
-	"github.com/icsid/icsid/internal/server"
+	"github.com/ch4os443/icsid/internal/config"
+	"github.com/ch4os443/icsid/internal/server"
 )
 
 var (
@@ -48,4 +48,4 @@ func main() {
 	if err := srv.Stop(); err != nil {
 		log.Printf("Erro ao encerrar servidor: %v", err)
 	}
-} 
+}

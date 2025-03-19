@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/gliderlabs/ssh"
 	"github.com/icsid/icsid/internal/config"
+	gossh "golang.org/x/crypto/ssh"
 )
 
 type Client struct {
 	config *config.Config
 	conn   net.Conn
+	client *gossh.Client
 }
 
 func New(cfg *config.Config) *Client {
@@ -35,28 +36,30 @@ func (c *Client) Connect() error {
 	c.conn = conn
 
 	// Configura a conexão SSH
-	_, chans, reqs, err := ssh.NewClientConn(conn, c.config.Client.ServerAddress, &ssh.ClientConfig{
+	sshConn, chans, reqs, err := gossh.NewClientConn(conn, c.config.Client.ServerAddress, &gossh.ClientConfig{
 		User: c.config.Client.Username,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(c.config.Client.Password),
+		Auth: []gossh.AuthMethod{
+			gossh.Password(c.config.Client.Password),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: gossh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
 		return fmt.Errorf("erro ao estabelecer conexão SSH: %v", err)
 	}
 
+	c.client = gossh.NewClient(sshConn, chans, reqs)
+
 	// Processa os canais SSH
-	go ssh.DiscardRequests(reqs)
+	go gossh.DiscardRequests(reqs)
 	go c.handleChannels(chans)
 
 	return nil
 }
 
-func (c *Client) handleChannels(chans <-chan ssh.NewChannel) {
+func (c *Client) handleChannels(chans <-chan gossh.NewChannel) {
 	for newChannel := range chans {
 		if newChannel.ChannelType() != "session" {
-			newChannel.Reject(ssh.UnknownChannelType, "tipo de canal desconhecido")
+			newChannel.Reject(gossh.UnknownChannelType, "tipo de canal desconhecido")
 			continue
 		}
 
@@ -70,9 +73,9 @@ func (c *Client) handleChannels(chans <-chan ssh.NewChannel) {
 	}
 }
 
-func (c *Client) handleChannel(channel ssh.Channel, requests <-chan *ssh.Request) {
+func (c *Client) handleChannel(channel gossh.Channel, requests <-chan *gossh.Request) {
 	// Processa requisições do canal
-	go func(in <-chan *ssh.Request) {
+	go func(in <-chan *gossh.Request) {
 		for req := range in {
 			switch req.Type {
 			case "exec":
@@ -88,12 +91,12 @@ func (c *Client) handleChannel(channel ssh.Channel, requests <-chan *ssh.Request
 	}(requests)
 }
 
-func (c *Client) handleExec(channel ssh.Channel, req *ssh.Request) {
+func (c *Client) handleExec(channel gossh.Channel, req *gossh.Request) {
 	var execReq struct {
 		Command string
 	}
 
-	if err := ssh.Unmarshal(req.Payload, &execReq); err != nil {
+	if err := gossh.Unmarshal(req.Payload, &execReq); err != nil {
 		req.Reply(false, nil)
 		return
 	}
@@ -110,7 +113,7 @@ func (c *Client) handleExec(channel ssh.Channel, req *ssh.Request) {
 	channel.Close()
 }
 
-func (c *Client) handleShell(channel ssh.Channel) {
+func (c *Client) handleShell(channel gossh.Channel) {
 	defer channel.Close()
 
 	// Configura o terminal
@@ -146,6 +149,9 @@ func (c *Client) handleShell(channel ssh.Channel) {
 }
 
 func (c *Client) Close() error {
+	if c.client != nil {
+		return c.client.Close()
+	}
 	if c.conn != nil {
 		return c.conn.Close()
 	}

@@ -4,44 +4,48 @@
 *.dll
 *.so
 *.dylib
-icsid_*
-
-# Arquivos de teste
 *.test
 *.out
-
-# Arquivos de cobertura
-*.cover
-
-# Arquivos de configuração local
-config.local.yaml
-
-# Arquivos de certificado
-*.pem
-*.key
-*.crt
-
-# Diretórios de dependências
-/vendor/
-
-# Arquivos de IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Arquivos de sistema
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Arquivos temporários
-*.tmp
-*.temp
 
 # Diretórios de build
 /build/
 /dist/
-/tmp/ 
+/tmp/
+
+# Certificados e chaves
+/certs/
+*.pem
+*.key
+*.crt
+
+# Logs
+/logs/
+*.log
+
+# Dados
+/data/
+
+# Cache do Go
+.cache/
+go.sum
+
+# IDEs e editores
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Ambiente virtual
+.env
+.env.local
+.env.*.local
+
+# Outros
+*.bak
+*.tmp
+*.temp 
